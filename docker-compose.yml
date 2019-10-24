@@ -1,0 +1,86 @@
+version: "3"
+
+services:
+ # Servidor HTTP e Load Balance
+ web:
+  image: nginx:1.16
+  container_name: Nginx
+  ports:
+   - "80:80"
+   - "443:443"
+  volumes:
+   # Aplicacoes
+   - ./:/var/www
+   # Logs
+   - ./.docker/nginx/logs:/var/log/nginx/
+   # Nginx config / Proxy reverso
+   - ./.docker/site.conf:/etc/nginx/nginx.conf
+  networks:
+   - app
+  depends_on:
+   - php
+
+ #PHP 7.2
+ php:
+  build:
+   context: .docker/php7
+   args:
+    GIT_USER: "vinicius_vivan@outlook.com"
+    GIT_PASSWORD: "4o*BaaemanjEwjV-m9va"
+  container_name: PHP
+  ports:
+   - "9000:9000"
+  volumes:
+   - ./:/var/www
+  working_dir: /var/www
+  networks:
+   - app
+   - database
+  depends_on:
+   - db
+
+ #Banco de dados MySQL
+ db:
+  image: mysql:5.7
+  container_name: DataBase
+  volumes:
+   # Volume de dados
+   - ./.docker/mysql:/var/lib/mysql
+  environment:
+   MYSQL_ROOT_PASSWORD: root123
+   MYSQL_DATABASE: default
+   MYSQL_USER: vizak
+   MYSQL_PASSWORD: vizak123
+  restart: unless-stopped
+  ports:
+   - "6603:3306"
+  networks:
+   - database
+  command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8 --collation-server=utf8_general_ci
+
+ #PHPMyAdmin
+ pma:
+  image: phpmyadmin/phpmyadmin:4.8
+  container_name: PHPMyAdmin
+  environment:
+   PMA_ARBITRARY: 1
+   PMA_HOST: db
+   PMA_USER: vizak
+   PMA_PASSWORD: vizak123
+   PHP_UPLOAD_MAX_FILESIZE: 1G
+   PHP_MAX_INPUT_VARS: 1G
+  restart: unless-stopped
+  ports:
+   - "8001:80"
+  volumes:
+   - ./.docker/sessions:/sessions
+  networks:
+   - database
+  depends_on:
+    - db
+
+networks:
+ database:
+  driver: bridge
+ app:
+  driver: bridge
