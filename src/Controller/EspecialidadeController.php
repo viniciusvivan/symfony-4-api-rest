@@ -3,63 +3,36 @@
 namespace App\Controller;
 
 use App\Entity\Especialidade;
+use App\Helper\EspecialidadeFactory;
 use App\Repository\EspecialidadeRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
 
-class EspecialidadesController extends BaseController
+class EspecialidadeController extends BaseController
 {
-
     public function __construct(
         EntityManagerInterface $entityManager,
-        EspecialidadeRepository $repository
+        EspecialidadeRepository $repository,
+        EspecialidadeFactory $factory
     ) {
-        parent::__construct($repository, $entityManager);
+        parent::__construct($repository, $entityManager, $factory);
     }
 
     /**
-     * @Route("/especialidade", methods={"POST"})
-     * @param Request $request
-     * @return Response
-     */
-    public function create(Request $request): Response
-    {
-        $dataRequest = $request->getContent();
-        $dataJson = json_decode($dataRequest);
-
-        $especialidade = new Especialidade();
-        $especialidade->setDescricao($dataJson->descricao);
-
-        $this->entityManager->persist($especialidade);
-        $this->entityManager->flush();
-
-        return new JsonResponse($especialidade, Response::HTTP_OK);
-    }
-
-    /**
-     * @param Request $request
      * @param int $id
-     * @return Response
-     * @Route("/especialidade/{id}", methods={"PUT"})
+     * @param Especialidade $entityReceived
+     * @return mixed|object|null
      */
-    public function Edit(Request $request, int $id): Response
+    public function refreshEntity(int $id, $entityReceived)
     {
-        $dataRequest = $request->getContent();
-        $dataJson = json_decode($dataRequest);
+        $entityDataBase = $this->repository->find($id);
 
-        $especialidade = $this->repository->find($id);
-
-        if (is_null($especialidade)) {
-            return new Response('', Response::HTTP_NOT_FOUND);
+        if (is_null($entityDataBase)) {
+            throw new \InvalidArgumentException();
         }
 
-        $especialidade->setDescricao($dataJson->descricao);
+        $entityDataBase
+            ->setDescricao($entityReceived->getDescricao());
 
-        $this->entityManager->flush();
-
-        return new JsonResponse($especialidade, Response::HTTP_OK);
+        return $entityDataBase;
     }
 }

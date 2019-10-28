@@ -15,3 +15,15 @@
 #### Instalação do plugin Maker
 
 `composer require maker`
+
+#### Instalação do pacote de segurança
+
+`composer require security`
+
+#### Instalação do JWT
+
+`composer require firebase/php-jwt`
+
+#### Intalação fixtures
+
+`composer require orm-fixtures --dev`

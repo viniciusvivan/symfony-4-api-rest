@@ -7,7 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * Class Medico
  * @package App\Entity
- * @ORM\Entity()
+ * @ORM\Entity(repositoryClass="App\Repository\EspecialidadeRepository")
  */
 class Medico implements \JsonSerializable
 {
@@ -123,7 +123,17 @@ class Medico implements \JsonSerializable
             'id' => $this->getId(),
             'crm' => $this->getCrm(),
             'nome' => $this->getNome(),
-            'especialidade' => $this->getEspecialidade()->getId()
+            'especialidade' => $this->getEspecialidade()->getId(),
+            '_links' => [
+                [
+                    'rel' => 'self',
+                    'path' => '/medico/' . $this->getId()
+                ],
+                [
+                    'rel' => 'especialidade',
+                    'path' => '/especialidade/' . $this->getEspecialidade()->getId()
+                ]
+            ]
         ];
     }
 }
