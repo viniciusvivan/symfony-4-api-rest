@@ -27,3 +27,8 @@
 #### Intalação fixtures
 
 `composer require orm-fixtures --dev`
+
+### Descrição
+
+Criação de uma API REST com Symfony 4 utilizando JWT para autenticação.
+Foi utilizado o padrão de projeto _Template Method_ para a criação dos controllers.
