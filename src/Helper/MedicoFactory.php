@@ -20,10 +20,14 @@ class MedicoFactory implements EntityFactory
     /**
      * @param string $json
      * @return Medico
+     * @throws EntityFactoryException
      */
     public function createEntity(string $json): Medico
     {
         $jsonData = json_decode($json);
+
+        $this->checkAllProperties($jsonData);
+
         $especialidadeId = $jsonData->especialidadeId;
         $especialidade = $this->especialidadeRepository->find($especialidadeId);
 
@@ -34,5 +38,21 @@ class MedicoFactory implements EntityFactory
             ->setEspecialidade($especialidade);
 
         return $medico;
+    }
+
+    /* Guard Clauses */
+    private function checkAllProperties(object $jsonData): void
+    {
+        if (!property_exists($jsonData, 'nome')) {
+            throw new EntityFactoryException('Médico precisa de nome');
+        }
+
+        if (!property_exists($jsonData, 'crm')) {
+            throw new EntityFactoryException('Médico precisa de CRM');
+        }
+
+        if (!property_exists($jsonData, 'especialidadeId')) {
+            throw new EntityFactoryException('Médico precisa de especialidade');
+        }
     }
 }

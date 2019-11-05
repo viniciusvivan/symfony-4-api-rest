@@ -6,15 +6,19 @@ use App\Entity\Especialidade;
 use App\Helper\EspecialidadeFactory;
 use App\Repository\EspecialidadeRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 
 class EspecialidadeController extends BaseController
 {
     public function __construct(
         EntityManagerInterface $entityManager,
         EspecialidadeRepository $repository,
-        EspecialidadeFactory $factory
+        EspecialidadeFactory $factory,
+        CacheItemPoolInterface $cache,
+        LoggerInterface $logger
     ) {
-        parent::__construct($repository, $entityManager, $factory);
+        parent::__construct($repository, $entityManager, $factory, $cache, $logger);
     }
 
     /**
@@ -34,5 +38,13 @@ class EspecialidadeController extends BaseController
             ->setDescricao($entityReceived->getDescricao());
 
         return $entityDataBase;
+    }
+
+    /***
+     * @return string
+     */
+    public function cachePrefix(): string
+    {
+        return 'especialidade_';
     }
 }

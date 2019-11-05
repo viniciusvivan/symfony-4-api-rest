@@ -7,6 +7,8 @@ use App\Helper\RequestDataExtractor;
 use App\Helper\ResponseFactory;
 use Doctrine\Common\Persistence\ObjectRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,26 +30,41 @@ abstract class BaseController extends AbstractController
      * @var EntityFactory
      */
     protected $factory;
+    /**
+     * @var CacheItemPoolInterface
+     */
+    private $cache;
+    /**
+     * @var LoggerInterface
+     */
+    private $logger;
 
     /**
      * BaseController constructor.
      * @param ObjectRepository $repository
      * @param EntityManagerInterface $entityManager
      * @param EntityFactory $factory
+     * @param CacheItemPoolInterface $cache
+     * @param LoggerInterface $logger
      */
     public function __construct(
         ObjectRepository $repository,
         EntityManagerInterface $entityManager,
-        EntityFactory $factory
+        EntityFactory $factory,
+        CacheItemPoolInterface $cache,
+        LoggerInterface $logger
     ) {
         $this->repository = $repository;
         $this->entityManager = $entityManager;
         $this->factory = $factory;
+        $this->cache = $cache;
+        $this->logger = $logger;
     }
 
     /**
      * @param Request $request
      * @return Response
+     * @throws \Psr\Cache\InvalidArgumentException
      */
     public function insert(Request $request): Response
     {
@@ -58,7 +75,23 @@ abstract class BaseController extends AbstractController
         $this->entityManager->persist($entity);
         $this->entityManager->flush();
 
-        return new JsonResponse($entity);
+        $cacheItem = $this->cache->getItem(
+            $this->cachePrefix() . $entity->getId()
+        );
+
+        $cacheItem->set($entity);
+        $this->cache->save($cacheItem);
+
+        $this->logger
+            ->notice(
+                'Novo registro de {entidade} adicionado com id: {id}.',
+                [
+                    'entidade' => get_class($entity),
+                    'id' => $entity->getId()
+                ]
+            );
+
+        return new JsonResponse($entity, Response::HTTP_CREATED);
     }
 
     /**
@@ -95,10 +128,13 @@ abstract class BaseController extends AbstractController
     /**
      * @param int $id
      * @return Response
+     * @throws \Psr\Cache\InvalidArgumentException
      */
     public function findOne(int $id): Response
     {
-        $entity = $this->repository->find($id);
+        $entity = $this->cache->hasItem($this->cachePrefix() . $id)
+            ? $this->cache->getItem($this->cachePrefix() . $id)->get()
+            : $this->repository->find($id);
 
         $status = is_null($entity) ? Response::HTTP_NO_CONTENT : Response::HTTP_OK;
 
@@ -114,6 +150,7 @@ abstract class BaseController extends AbstractController
     /**
      * @param int $id
      * @return Response
+     * @throws \Psr\Cache\InvalidArgumentException
      */
     public function delete(int $id): Response
     {
@@ -126,6 +163,8 @@ abstract class BaseController extends AbstractController
         $this->entityManager->remove($entity);
         $this->entityManager->flush();
 
+        $this->cache->deleteItem($this->cachePrefix() . $id);
+
         return new JsonResponse('', Response::HTTP_NO_CONTENT);
     }
 
@@ -133,6 +172,7 @@ abstract class BaseController extends AbstractController
      * @param Request $request
      * @param $id
      * @return Response
+     * @throws \Psr\Cache\InvalidArgumentException
      */
     public function edit(Request $request, int $id): Response
     {
@@ -142,6 +182,10 @@ abstract class BaseController extends AbstractController
         try {
             $entityDataBase = $this->refreshEntity($id, $entityReceived);
             $this->entityManager->flush();
+
+            $cacheItem = $this->cache->getItem($this->cachePrefix() . $id);
+            $cacheItem->set($entityDataBase);
+            $this->cache->save($cacheItem);
 
             $responseFactory = new ResponseFactory(
                 true,
@@ -166,4 +210,5 @@ abstract class BaseController extends AbstractController
      * @return mixed
      */
     abstract public function refreshEntity(int $id, $entityReceived);
+    abstract public function cachePrefix(): string ;
 }

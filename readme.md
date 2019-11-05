@@ -6,7 +6,7 @@
 
 #### Intalação do componente de annotations
 
-'composer require annotation'
+`composer require annotation`
 
 #### Intalação do Doctrine
 

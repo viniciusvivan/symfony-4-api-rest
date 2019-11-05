@@ -6,6 +6,8 @@ use App\Entity\Medico;
 use App\Helper\MedicoFactory;
 use App\Repository\MedicoRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -14,9 +16,11 @@ class MedicoController extends BaseController
     public function __construct(
         EntityManagerInterface $entityManagernager,
         MedicoFactory $factory,
-        MedicoRepository $medicoRepository
+        MedicoRepository $medicoRepository,
+        CacheItemPoolInterface $cache,
+        LoggerInterface $logger
     ) {
-        parent::__construct($medicoRepository, $entityManagernager, $factory);
+        parent::__construct($medicoRepository, $entityManagernager, $factory, $cache, $logger);
     }
 
     /**
@@ -51,5 +55,13 @@ class MedicoController extends BaseController
             ->setEspecialidade($entityReceived->getEspecialidade());
 
         return $entityDataBase;
+    }
+
+    /***
+     * @return string
+     */
+    public function cachePrefix(): string
+    {
+        return 'medico_';
     }
 }
